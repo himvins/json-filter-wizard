@@ -1,4 +1,3 @@
-
 import { v4 as uuidv4 } from 'uuid';
 import { 
   FieldInfo, 
@@ -124,87 +123,29 @@ export const getValueByPath = (obj: any, path: string): any => {
   return current;
 };
 
-// Main function to filter data based on conditions
+// Create a worker instance (returns a Promise to allow for graceful degradation)
+export const createFilterWorker = () => {
+  return new Promise<Worker>((resolve, reject) => {
+    try {
+      const worker = new Worker(
+        new URL('./filterWorker.ts', import.meta.url), 
+        { type: 'module' }
+      );
+      resolve(worker);
+    } catch (error) {
+      reject(error);
+    }
+  });
+};
+
+// Fallback filter function for environments without worker support
 export const filterData = (data: any[], rootGroup: FilterGroup): any[] => {
   if (!data || !data.length) return [];
   
-  return data.filter(item => evaluateGroup(item, rootGroup));
-};
-
-// Evaluates a group of conditions against an item
-const evaluateGroup = (item: any, group: FilterGroup): boolean => {
-  // Evaluate all immediate conditions in this group
-  const conditionResults = group.conditions.map(condition => 
-    evaluateCondition(item, condition)
-  );
+  // This is just a stub - the actual implementation is in the worker
+  console.warn('Using main thread filtering - this may impact performance with large datasets');
   
-  // Evaluate all nested groups
-  const groupResults = group.groups.map(nestedGroup => 
-    evaluateGroup(item, nestedGroup)
-  );
-  
-  // Combine all results based on the group's operator
-  const allResults = [...conditionResults, ...groupResults];
-  
-  if (allResults.length === 0) return true; // Empty group matches everything
-  
-  return group.operator === 'AND' 
-    ? allResults.every(Boolean) 
-    : allResults.some(Boolean);
-};
-
-// Evaluates a single condition against an item
-const evaluateCondition = (item: any, condition: FilterCondition): boolean => {
-  const { field, operator, value } = condition;
-  const actualValue = getValueByPath(item, field);
-  
-  // Handle the case where the field doesn't exist
-  if (actualValue === undefined) {
-    return operator === 'notExists';
-  }
-  
-  switch (operator) {
-    case 'equals':
-      return actualValue === value;
-      
-    case 'notEquals':
-      return actualValue !== value;
-      
-    case 'contains':
-      return typeof actualValue === 'string' && 
-             actualValue.toLowerCase().includes(String(value).toLowerCase());
-      
-    case 'notContains':
-      return typeof actualValue !== 'string' || 
-             !actualValue.toLowerCase().includes(String(value).toLowerCase());
-      
-    case 'greaterThan':
-      return actualValue > value;
-      
-    case 'lessThan':
-      return actualValue < value;
-      
-    case 'in':
-      return Array.isArray(value) && value.includes(actualValue);
-      
-    case 'notIn':
-      return Array.isArray(value) && !value.includes(actualValue);
-      
-    case 'exists':
-      return actualValue !== undefined;
-      
-    case 'notExists':
-      return actualValue === undefined;
-      
-    case 'startsWith':
-      return typeof actualValue === 'string' && 
-             actualValue.toLowerCase().startsWith(String(value).toLowerCase());
-      
-    case 'endsWith':
-      return typeof actualValue === 'string' && 
-             actualValue.toLowerCase().endsWith(String(value).toLowerCase());
-      
-    default:
-      return false;
-  }
+  // We'll import the worker logic directly in this case
+  const { default: workerContent } = require('./filterWorker');
+  return workerContent.filterData(data, rootGroup);
 };
