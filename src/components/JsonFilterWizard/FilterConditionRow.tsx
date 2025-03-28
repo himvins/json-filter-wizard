@@ -52,7 +52,7 @@ const FilterConditionRow: React.FC<FilterConditionRowProps> = ({
 
   // Get the appropriate operators based on field type
   const getOperatorsForType = (type?: string): { value: ComparisonOperator; label: string }[] => {
-    const allOperators = [
+    const allOperators: { value: ComparisonOperator; label: string }[] = [
       { value: 'equals', label: 'Equals' },
       { value: 'notEquals', label: 'Not Equals' },
       { value: 'contains', label: 'Contains' },
