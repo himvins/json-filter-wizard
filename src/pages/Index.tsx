@@ -1,5 +1,6 @@
 
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { sampleJobs, AutosysJob } from '@/data/sampleJobs';
 import { JsonFilterWizard } from '@/components/JsonFilterWizard';
 import { 
@@ -18,6 +19,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { FileText } from 'lucide-react';
 
 const Index = () => {
   const [filteredJobs, setFilteredJobs] = useState<AutosysJob[]>(sampleJobs);
@@ -40,13 +43,28 @@ const Index = () => {
   return (
     <div className="container mx-auto py-6 px-4 min-h-screen">
       <div className="flex flex-col gap-6">
-        <div className="text-center">
-          <h1 className="text-3xl font-bold mb-2">JSON Filter Wizard</h1>
-          <p className="text-gray-600 max-w-2xl mx-auto">
-            A powerful component for filtering JSON data with complex conditions and logic. 
-            Perfect for filtering Autosys jobs or any structured JSON data.
-          </p>
+        <div className="flex justify-between items-center">
+          <div className="text-center sm:text-left">
+            <h1 className="text-3xl font-bold mb-2">JSON Filter Wizard</h1>
+            <p className="text-gray-600 max-w-2xl">
+              A powerful component for filtering JSON data with complex conditions and logic. 
+              Perfect for filtering Autosys jobs or any structured JSON data.
+            </p>
+          </div>
+          <Button variant="outline" className="hidden sm:flex" asChild>
+            <Link to="/docs">
+              <FileText className="h-4 w-4 mr-2" />
+              View Documentation
+            </Link>
+          </Button>
         </div>
+        
+        <Button variant="outline" className="sm:hidden mb-2" asChild>
+          <Link to="/docs">
+            <FileText className="h-4 w-4 mr-2" />
+            View Documentation
+          </Link>
+        </Button>
         
         <div className="grid grid-cols-1 gap-6">
           {/* Filter Wizard */}
