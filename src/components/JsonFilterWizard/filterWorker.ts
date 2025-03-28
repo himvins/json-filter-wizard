@@ -80,10 +80,47 @@ const evaluateCondition = (item: any, condition: any): boolean => {
   }
 };
 
-// Main filter function
+// Main filter function with batching support for large datasets
 const filterData = (data: any[], rootGroup: FilterGroup): any[] => {
   if (!data || !data.length) return [];
-  return data.filter(item => evaluateGroup(item, rootGroup));
+  
+  // For very large datasets, we'll process in batches
+  const BATCH_SIZE = 5000; // Process 5000 items at a time
+  
+  if (data.length <= BATCH_SIZE) {
+    // For smaller datasets, filter directly
+    return data.filter(item => evaluateGroup(item, rootGroup));
+  } else {
+    // For larger datasets, process in batches to avoid UI blocking
+    const result: any[] = [];
+    const totalBatches = Math.ceil(data.length / BATCH_SIZE);
+    
+    for (let i = 0; i < totalBatches; i++) {
+      const start = i * BATCH_SIZE;
+      const end = Math.min(start + BATCH_SIZE, data.length);
+      const batch = data.slice(start, end);
+      
+      // Filter the current batch
+      const filteredBatch = batch.filter(item => evaluateGroup(item, rootGroup));
+      
+      // Add filtered results to the overall result
+      result.push(...filteredBatch);
+      
+      // Report progress after each batch (helpful for very large datasets)
+      if (totalBatches > 1) {
+        const progress = Math.round(((i + 1) / totalBatches) * 100);
+        self.postMessage({ 
+          type: 'progress', 
+          progress,
+          currentCount: result.length,
+          processedCount: end,
+          totalCount: data.length
+        });
+      }
+    }
+    
+    return result;
+  }
 };
 
 // Worker message handler
