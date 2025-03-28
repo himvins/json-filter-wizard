@@ -52,6 +52,9 @@ const JsonFilterWizard: React.FC<JsonFilterWizardProps> = ({
   const [filterState, setFilterState] = useState<FilterState>({
     rootGroup: createEmptyGroup()
   });
+  const [pendingFilterState, setPendingFilterState] = useState<FilterState>({
+    rootGroup: createEmptyGroup()
+  });
   const [filteredData, setFilteredData] = useState<any[]>(data);
   const [jsonFilterString, setJsonFilterString] = useState('');
   const { toast } = useToast();
@@ -65,7 +68,7 @@ const JsonFilterWizard: React.FC<JsonFilterWizardProps> = ({
     }
   }, [data]);
   
-  // Update filtered data when filter state changes
+  // Update filtered data when filter state changes (not on pending changes)
   useEffect(() => {
     const newFilteredData = filterData(data, filterState.rootGroup);
     setFilteredData(newFilteredData);
@@ -75,14 +78,25 @@ const JsonFilterWizard: React.FC<JsonFilterWizardProps> = ({
     setJsonFilterString(JSON.stringify(filterState.rootGroup, null, 2));
   }, [filterState, data, onFilterChange]);
   
-  // Handle filter group changes
+  // Handle filter group changes (this now updates the pending state)
   const handleFilterChange = (rootGroup: FilterGroupType) => {
-    setFilterState({ rootGroup });
+    setPendingFilterState({ rootGroup });
+  };
+  
+  // Apply the pending filter
+  const handleApplyFilter = () => {
+    setFilterState(pendingFilterState);
+    toast({
+      title: "Filter Applied",
+      description: "Filter conditions have been applied.",
+    });
   };
   
   // Reset the filter
   const handleResetFilter = () => {
-    setFilterState({ rootGroup: createEmptyGroup() });
+    const emptyGroup = createEmptyGroup();
+    setFilterState({ rootGroup: emptyGroup });
+    setPendingFilterState({ rootGroup: emptyGroup });
     toast({
       title: "Filter Reset",
       description: "All filter conditions have been cleared.",
@@ -94,6 +108,7 @@ const JsonFilterWizard: React.FC<JsonFilterWizardProps> = ({
     try {
       const parsed = JSON.parse(jsonFilterString);
       setFilterState({ rootGroup: parsed });
+      setPendingFilterState({ rootGroup: parsed });
       toast({
         title: "Filter Applied",
         description: "JSON filter has been successfully applied.",
@@ -133,11 +148,11 @@ const JsonFilterWizard: React.FC<JsonFilterWizardProps> = ({
       try {
         const content = e.target?.result as string;
         const parsed = JSON.parse(content);
-        setFilterState({ rootGroup: parsed });
+        setPendingFilterState({ rootGroup: parsed });
         setJsonFilterString(content);
         toast({
           title: "Filter Imported",
-          description: "Filter configuration has been successfully imported.",
+          description: "Filter configuration has been imported. Click 'Apply Filter' to use it.",
         });
       } catch (error) {
         toast({
@@ -201,12 +216,24 @@ const JsonFilterWizard: React.FC<JsonFilterWizardProps> = ({
           </TabsList>
           
           <TabsContent value="builder">
-            <FilterGroup
-              group={filterState.rootGroup}
-              fields={fields}
-              data={data}
-              onChange={handleFilterChange}
-            />
+            <div className="space-y-4">
+              <FilterGroup
+                group={pendingFilterState.rootGroup}
+                fields={fields}
+                data={data}
+                onChange={handleFilterChange}
+              />
+              
+              <div className="flex justify-end mt-4">
+                <Button 
+                  className="bg-blue-600 hover:bg-blue-700"
+                  onClick={handleApplyFilter}
+                >
+                  <Filter className="h-4 w-4 mr-1" />
+                  Apply Filter
+                </Button>
+              </div>
+            </div>
           </TabsContent>
           
           <TabsContent value="json">
