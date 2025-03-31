@@ -7,9 +7,12 @@ const Index = () => {
   const [filteredJobs, setFilteredJobs] = useState(sampleJobs);
 
   return (
-    <div className="container mx-auto py-6 px-4 min-h-screen">
-      <div className="flex flex-col gap-6">
-        <h1 className="text-3xl font-bold mb-4">Standalone JSON Filter Wizard Demo</h1>
+    <div className="container mx-auto py-8 px-4 min-h-screen">
+      <div className="flex flex-col gap-6 max-w-4xl mx-auto">
+        <header className="text-center mb-6">
+          <h1 className="text-3xl font-bold mb-2">JSON Filter Wizard Demo</h1>
+          <p className="text-slate-600">Create and apply filters to search through data</p>
+        </header>
         
         <StandaloneJsonFilterWizard 
           data={sampleJobs} 
