@@ -152,9 +152,12 @@ const StandaloneJsonFilterWizard: React.FC<StandaloneJsonFilterWizardProps> = ({
 
   // Handle filter application
   const handleApplyFilter = () => {
+    // Fix: Apply actual filtering logic here
     const results = filterData(data, filterState);
     setFilteredData(results);
-    onFilterChange?.(results);
+    if (onFilterChange) {
+      onFilterChange(results);
+    }
   };
 
   // Reset filter
@@ -162,18 +165,61 @@ const StandaloneJsonFilterWizard: React.FC<StandaloneJsonFilterWizardProps> = ({
     const emptyGroup = createEmptyGroup();
     setFilterState(emptyGroup);
     setFilteredData(data);
-    onFilterChange?.(data);
+    if (onFilterChange) {
+      onFilterChange(data);
+    }
   };
 
   // Add condition to the root group
   const addCondition = () => {
-    const newState = { ...filterState };
+    // Fix: Create a proper deep copy of the state to avoid reference issues
+    const newState = JSON.parse(JSON.stringify(filterState));
+    
+    // Add a new condition with default values
     newState.conditions.push({
       id: uuidv4(),
-      field: fields[0] || '',
+      field: fields.length > 0 ? fields[0] : '',
       operator: 'equals',
       value: ''
     });
+    
+    setFilterState(newState);
+  };
+
+  // Update condition field
+  const updateConditionField = (conditionId: string, field: string) => {
+    const newState = JSON.parse(JSON.stringify(filterState));
+    const condition = newState.conditions.find(c => c.id === conditionId);
+    if (condition) {
+      condition.field = field;
+    }
+    setFilterState(newState);
+  };
+
+  // Update condition operator
+  const updateConditionOperator = (conditionId: string, operator: ComparisonOperator) => {
+    const newState = JSON.parse(JSON.stringify(filterState));
+    const condition = newState.conditions.find(c => c.id === conditionId);
+    if (condition) {
+      condition.operator = operator;
+    }
+    setFilterState(newState);
+  };
+
+  // Update condition value
+  const updateConditionValue = (conditionId: string, value: any) => {
+    const newState = JSON.parse(JSON.stringify(filterState));
+    const condition = newState.conditions.find(c => c.id === conditionId);
+    if (condition) {
+      condition.value = value;
+    }
+    setFilterState(newState);
+  };
+
+  // Remove condition
+  const removeCondition = (conditionId: string) => {
+    const newState = JSON.parse(JSON.stringify(filterState));
+    newState.conditions = newState.conditions.filter(c => c.id !== conditionId);
     setFilterState(newState);
   };
 
@@ -196,52 +242,84 @@ const StandaloneJsonFilterWizard: React.FC<StandaloneJsonFilterWizardProps> = ({
       </div>
 
       <div className="filter-controls" style={{ marginBottom: '20px' }}>
-        <div className="field-selection" style={{ marginBottom: '10px' }}>
-          <select 
-            value={filterState.conditions[0]?.field || ''}
-            onChange={(e) => {
-              const newState = { ...filterState };
-              if (newState.conditions[0]) {
-                newState.conditions[0].field = e.target.value;
-              }
-              setFilterState(newState);
-            }}
-            style={{ marginRight: '10px', padding: '5px' }}
-          >
-            {fields.map(field => (
-              <option key={field} value={field}>{field}</option>
-            ))}
-          </select>
+        <div className="conditions-list" style={{ marginBottom: '15px' }}>
+          {filterState.conditions.length === 0 ? (
+            <div style={{ padding: '10px', backgroundColor: '#f9f9f9', borderRadius: '4px' }}>
+              No conditions added yet. Use the "Add Condition" button below to create filter conditions.
+            </div>
+          ) : (
+            filterState.conditions.map((condition) => (
+              <div 
+                key={condition.id} 
+                style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  marginBottom: '10px',
+                  padding: '8px',
+                  backgroundColor: '#f9f9f9',
+                  borderRadius: '4px' 
+                }}
+              >
+                <select 
+                  value={condition.field}
+                  onChange={(e) => updateConditionField(condition.id, e.target.value)}
+                  style={{ 
+                    marginRight: '8px', 
+                    padding: '6px',
+                    borderRadius: '4px',
+                    border: '1px solid #ddd' 
+                  }}
+                >
+                  {fields.map(field => (
+                    <option key={field} value={field}>{field}</option>
+                  ))}
+                </select>
 
-          <select 
-            value={filterState.conditions[0]?.operator || 'equals'}
-            onChange={(e) => {
-              const newState = { ...filterState };
-              if (newState.conditions[0]) {
-                newState.conditions[0].operator = e.target.value as ComparisonOperator;
-              }
-              setFilterState(newState);
-            }}
-            style={{ marginRight: '10px', padding: '5px' }}
-          >
-            {availableOperators.map(op => (
-              <option key={op} value={op}>{op}</option>
-            ))}
-          </select>
+                <select 
+                  value={condition.operator}
+                  onChange={(e) => updateConditionOperator(condition.id, e.target.value as ComparisonOperator)}
+                  style={{ 
+                    marginRight: '8px', 
+                    padding: '6px',
+                    borderRadius: '4px',
+                    border: '1px solid #ddd' 
+                  }}
+                >
+                  {availableOperators.map(op => (
+                    <option key={op} value={op}>{op}</option>
+                  ))}
+                </select>
 
-          <input 
-            type="text"
-            value={filterState.conditions[0]?.value || ''}
-            onChange={(e) => {
-              const newState = { ...filterState };
-              if (newState.conditions[0]) {
-                newState.conditions[0].value = e.target.value;
-              }
-              setFilterState(newState);
-            }}
-            placeholder="Enter value"
-            style={{ marginRight: '10px', padding: '5px' }}
-          />
+                <input 
+                  type="text"
+                  value={condition.value || ''}
+                  onChange={(e) => updateConditionValue(condition.id, e.target.value)}
+                  placeholder="Enter value"
+                  style={{ 
+                    marginRight: '8px', 
+                    padding: '6px',
+                    borderRadius: '4px',
+                    border: '1px solid #ddd',
+                    flexGrow: 1 
+                  }}
+                />
+
+                <button 
+                  onClick={() => removeCondition(condition.id)}
+                  style={{
+                    padding: '6px 10px',
+                    backgroundColor: '#f44336',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '4px',
+                    cursor: 'pointer'
+                  }}
+                >
+                  Remove
+                </button>
+              </div>
+            ))
+          )}
         </div>
 
         <div className="filter-actions">
@@ -249,7 +327,7 @@ const StandaloneJsonFilterWizard: React.FC<StandaloneJsonFilterWizardProps> = ({
             onClick={addCondition}
             style={{
               marginRight: '10px',
-              padding: '5px 10px',
+              padding: '8px 12px',
               backgroundColor: '#4CAF50',
               color: 'white',
               border: 'none',
@@ -263,7 +341,7 @@ const StandaloneJsonFilterWizard: React.FC<StandaloneJsonFilterWizardProps> = ({
             onClick={handleApplyFilter}
             style={{
               marginRight: '10px',
-              padding: '5px 10px',
+              padding: '8px 12px',
               backgroundColor: '#2196F3',
               color: 'white',
               border: 'none',
@@ -276,7 +354,7 @@ const StandaloneJsonFilterWizard: React.FC<StandaloneJsonFilterWizardProps> = ({
           <button 
             onClick={handleResetFilter}
             style={{
-              padding: '5px 10px',
+              padding: '8px 12px',
               backgroundColor: '#f44336',
               color: 'white',
               border: 'none',
@@ -300,10 +378,17 @@ const StandaloneJsonFilterWizard: React.FC<StandaloneJsonFilterWizardProps> = ({
             maxHeight: '300px', 
             overflowY: 'auto', 
             border: '1px solid #e0e0e0',
-            padding: '10px'
+            padding: '10px',
+            backgroundColor: '#f9f9f9',
+            borderRadius: '4px'
           }}
         >
-          <pre>{JSON.stringify(filteredData, null, 2)}</pre>
+          <pre>{JSON.stringify(filteredData.slice(0, 5), null, 2)}</pre>
+          {filteredData.length > 5 && (
+            <div style={{ textAlign: 'center', marginTop: '10px', color: '#666' }}>
+              ... {filteredData.length - 5} more items
+            </div>
+          )}
         </div>
       </div>
 
