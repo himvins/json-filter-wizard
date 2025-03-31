@@ -46,6 +46,23 @@ const createEmptyGroup = (): FilterGroup => ({
   groups: []
 });
 
+// Create an initial group with a default condition
+const createInitialGroup = (fields: string[]): FilterGroup => {
+  const group = createEmptyGroup();
+  
+  // Add a default condition if fields are available
+  if (fields.length > 0) {
+    group.conditions.push({
+      id: uuidv4(),
+      field: fields[0],
+      operator: 'equals',
+      value: ''
+    });
+  }
+  
+  return group;
+};
+
 const filterData = (data: any[], filter: FilterGroup): any[] => {
   const matchGroup = (item: any, group: FilterGroup): boolean => {
     const conditionResults = group.conditions.map(condition => {
@@ -53,13 +70,21 @@ const filterData = (data: any[], filter: FilterGroup): any[] => {
       
       switch (condition.operator) {
         case 'equals':
-          return value === condition.value;
+          return typeof value === 'string' && typeof condition.value === 'string' 
+            ? value.toLowerCase() === condition.value.toLowerCase()
+            : value === condition.value;
         case 'notEquals':
-          return value !== condition.value;
+          return typeof value === 'string' && typeof condition.value === 'string' 
+            ? value.toLowerCase() !== condition.value.toLowerCase()
+            : value !== condition.value;
         case 'contains':
-          return String(value).includes(String(condition.value));
+          return typeof value === 'string' && typeof condition.value === 'string'
+            ? value.toLowerCase().includes(condition.value.toLowerCase())
+            : String(value).includes(String(condition.value));
         case 'notContains':
-          return !String(value).includes(String(condition.value));
+          return typeof value === 'string' && typeof condition.value === 'string'
+            ? !value.toLowerCase().includes(condition.value.toLowerCase())
+            : !String(value).includes(String(condition.value));
         case 'greaterThan':
           return value > condition.value;
         case 'lessThan':
@@ -77,9 +102,13 @@ const filterData = (data: any[], filter: FilterGroup): any[] => {
         case 'notExists':
           return value === undefined || value === null;
         case 'startsWith':
-          return String(value).startsWith(String(condition.value));
+          return typeof value === 'string' && typeof condition.value === 'string'
+            ? value.toLowerCase().startsWith(condition.value.toLowerCase())
+            : String(value).startsWith(String(condition.value));
         case 'endsWith':
-          return String(value).endsWith(String(condition.value));
+          return typeof value === 'string' && typeof condition.value === 'string'
+            ? value.toLowerCase().endsWith(condition.value.toLowerCase())
+            : String(value).endsWith(String(condition.value));
         default:
           return true;
       }
@@ -136,11 +165,16 @@ const StandaloneJsonFilterWizard: React.FC<StandaloneJsonFilterWizardProps> = ({
     'exists', 'notExists', 'startsWith', 'endsWith'
   ]);
 
-  // Extract fields when data changes
+  // Extract fields when data changes and initialize with default condition
   useEffect(() => {
     if (data && data.length > 0) {
       const extractedFields = extractFieldsFromArray(data);
       setFields(extractedFields);
+      
+      // Create an initial filter state with a default condition
+      const initialGroup = createInitialGroup(extractedFields);
+      setFilterState(initialGroup);
+      
       setFilteredData(data);
     }
   }, [data]);
@@ -152,7 +186,7 @@ const StandaloneJsonFilterWizard: React.FC<StandaloneJsonFilterWizardProps> = ({
 
   // Handle filter application
   const handleApplyFilter = () => {
-    // Fix: Apply actual filtering logic here
+    // Apply filtering logic
     const results = filterData(data, filterState);
     setFilteredData(results);
     if (onFilterChange) {
@@ -162,8 +196,8 @@ const StandaloneJsonFilterWizard: React.FC<StandaloneJsonFilterWizardProps> = ({
 
   // Reset filter
   const handleResetFilter = () => {
-    const emptyGroup = createEmptyGroup();
-    setFilterState(emptyGroup);
+    const initialGroup = createInitialGroup(fields);
+    setFilterState(initialGroup);
     setFilteredData(data);
     if (onFilterChange) {
       onFilterChange(data);
@@ -172,7 +206,7 @@ const StandaloneJsonFilterWizard: React.FC<StandaloneJsonFilterWizardProps> = ({
 
   // Add condition to the root group
   const addCondition = () => {
-    // Fix: Create a proper deep copy of the state to avoid reference issues
+    // Create a proper deep copy of the state to avoid reference issues
     const newState = JSON.parse(JSON.stringify(filterState));
     
     // Add a new condition with default values
@@ -189,7 +223,7 @@ const StandaloneJsonFilterWizard: React.FC<StandaloneJsonFilterWizardProps> = ({
   // Update condition field
   const updateConditionField = (conditionId: string, field: string) => {
     const newState = JSON.parse(JSON.stringify(filterState));
-    const condition = newState.conditions.find(c => c.id === conditionId);
+    const condition = newState.conditions.find((c: FilterCondition) => c.id === conditionId);
     if (condition) {
       condition.field = field;
     }
@@ -199,7 +233,7 @@ const StandaloneJsonFilterWizard: React.FC<StandaloneJsonFilterWizardProps> = ({
   // Update condition operator
   const updateConditionOperator = (conditionId: string, operator: ComparisonOperator) => {
     const newState = JSON.parse(JSON.stringify(filterState));
-    const condition = newState.conditions.find(c => c.id === conditionId);
+    const condition = newState.conditions.find((c: FilterCondition) => c.id === conditionId);
     if (condition) {
       condition.operator = operator;
     }
@@ -209,7 +243,7 @@ const StandaloneJsonFilterWizard: React.FC<StandaloneJsonFilterWizardProps> = ({
   // Update condition value
   const updateConditionValue = (conditionId: string, value: any) => {
     const newState = JSON.parse(JSON.stringify(filterState));
-    const condition = newState.conditions.find(c => c.id === conditionId);
+    const condition = newState.conditions.find((c: FilterCondition) => c.id === conditionId);
     if (condition) {
       condition.value = value;
     }
@@ -219,7 +253,7 @@ const StandaloneJsonFilterWizard: React.FC<StandaloneJsonFilterWizardProps> = ({
   // Remove condition
   const removeCondition = (conditionId: string) => {
     const newState = JSON.parse(JSON.stringify(filterState));
-    newState.conditions = newState.conditions.filter(c => c.id !== conditionId);
+    newState.conditions = newState.conditions.filter((c: FilterCondition) => c.id !== conditionId);
     setFilterState(newState);
   };
 
