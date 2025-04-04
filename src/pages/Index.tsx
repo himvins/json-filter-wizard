@@ -6,7 +6,8 @@ import { toast } from '@/components/ui/use-toast';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
 
-const API_URL = 'http://localhost:8000/api';
+// Updated to use relative URL instead of hardcoded localhost
+const API_URL = '/api';
 
 const Index = () => {
   const [jobs, setJobs] = useState<AutosysJob[]>([]);
